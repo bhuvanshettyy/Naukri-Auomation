@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import *
 import time
 import os
+import shutil
 
 NAUKRI_EMAIL = os.environ.get("NAUKRI_EMAIL")
 NAUKRI_PASSWORD = os.environ.get("NAUKRI_PASSWORD")
@@ -16,7 +17,11 @@ chrome_options.add_argument("--headless=new")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.binary_location = "/usr/bin/chromium-browser"
+# find chromium path dynamically
+chromium_path = shutil.which("chromium-browser") or shutil.which("chromium")
+if chromium_path is None:
+    raise FileNotFoundError("Chromium not found in GitHub Actions runner")
+chrome_options.binary_location = chromium_path
 driver = webdriver.Chrome(options=chrome_options)
 driver.get("https://www.naukri.com/mnjuser/profile?id=&altresid")
 driver.maximize_window()
