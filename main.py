@@ -18,7 +18,6 @@ chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
-# Detect Chromium binary
 chromium_path = shutil.which("chromium-browser") or shutil.which("chromium")
 if chromium_path is None:
     raise FileNotFoundError("Chromium not found in runner")
@@ -28,6 +27,12 @@ chrome_options.binary_location = chromium_path
 chromedriver_path = shutil.which("chromedriver")
 if chromedriver_path is None:
     raise FileNotFoundError("Chromedriver not found in runner")
+
+print(f"Using chromium at: {chromium_path}")
+print(f"Using chromedriver at: {chromedriver_path}")
+
+# Pass executable_path explicitly
+driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
 
 # Use both explicitly
 driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
