@@ -1,0 +1,30 @@
+name: Naukri Auto Update
+
+on:
+  schedule:
+    - cron: "0 3-16 * * *"   # every hour from 9 AM–10 PM IST (IST = UTC+5:30 → 3–16 UTC)
+  workflow_dispatch:         # allow manual run
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+
+      - name: Run script
+        env:
+          NAUKRI_EMAIL: ${{ secrets.NAUKRI_EMAIL }}
+          NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
+          RESUME_PATH: ${{ secrets.RESUME_PATH }}
+        run: python main.py
