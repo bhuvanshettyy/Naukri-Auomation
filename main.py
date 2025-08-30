@@ -37,8 +37,25 @@ driver.get("https://www.naukri.com/mnjuser/profile?id=&altresid")
 driver.implicitly_wait(5)
 
 driver.find_element(By.ID, "usernameField").send_keys(NAUKRI_EMAIL)
-driver.find_element(By.ID, "passwordField").send_keys(NAUKRI_PASSWORD)
-driver.find_element(By.XPATH, "//*[@id='loginForm']/div[2]/div[3]/div/button[1]").click()
+# Wait for email field
+emailInput = WebDriverWait(driver, 20).until(
+    EC.presence_of_element_located((By.ID, "usernameField"))
+)
+emailInput.send_keys(NAUKRI_EMAIL)
+
+# Wait for password field
+passwordInput = WebDriverWait(driver, 20).until(
+    EC.presence_of_element_located((By.ID, "passwordField"))
+)
+passwordInput.send_keys(NAUKRI_PASSWORD)
+
+# Wait for login button
+loginBtn = WebDriverWait(driver, 20).until(
+    EC.element_to_be_clickable((By.XPATH, "//*[@id='loginForm']/div[2]/div[3]/div/button[1]"))
+)
+loginBtn.click()
+driver.save_screenshot("page.png")
+
 
 WebDriverWait(driver, 10).until(
     EC.element_to_be_clickable((By.XPATH, "//*[@id='portal']/div/div[2]/div/img"))
