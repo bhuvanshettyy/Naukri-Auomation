@@ -16,6 +16,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+
+
       - name: Debug Chromium paths
         run: |
           which chromium-browser || true
