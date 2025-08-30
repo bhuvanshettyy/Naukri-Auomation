@@ -1,11 +1,8 @@
 from selenium import webdriver
-from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import *
-import time
+from selenium.webdriver.chrome.service import Service
 import os
 import shutil
 
@@ -18,21 +15,23 @@ chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
+# Detect Chromium binary
 chromium_path = shutil.which("chromium-browser") or shutil.which("chromium")
-if chromium_path is None:
+if not chromium_path:
     raise FileNotFoundError("Chromium not found in runner")
 chrome_options.binary_location = chromium_path
 
-# Detect chromedriver
+# Detect Chromedriver
 chromedriver_path = shutil.which("chromedriver")
-if chromedriver_path is None:
+if not chromedriver_path:
     raise FileNotFoundError("Chromedriver not found in runner")
 
 print(f"Using chromium at: {chromium_path}")
 print(f"Using chromedriver at: {chromedriver_path}")
 
-# Pass executable_path explicitly
-driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
+# Correct way in Selenium 4.6+
+service = Service(chromedriver_path)
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Use both explicitly
 driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
