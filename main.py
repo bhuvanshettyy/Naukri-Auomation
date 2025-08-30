@@ -33,9 +33,6 @@ print(f"Using chromedriver at: {chromedriver_path}")
 service = Service(chromedriver_path)
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# Use both explicitly
-driver = webdriver.Chrome(executable_path=chromedriver_path, options=chrome_options)
-
 driver.get("https://www.naukri.com/mnjuser/profile?id=&altresid")
 driver.implicitly_wait(5)
 
