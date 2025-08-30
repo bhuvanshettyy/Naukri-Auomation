@@ -32,10 +32,13 @@ jobs:
 
       - name: Upload screenshot on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.1.1
         with:
           name: debug-screenshots
-          path: page.png
+          path: |
+            *.png
+            error_page.png
+            no_login_form.png
 
 
       - name: Run script

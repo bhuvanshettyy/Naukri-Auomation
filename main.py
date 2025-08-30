@@ -16,6 +16,16 @@ if os.environ.get("GITHUB_ACTIONS") == "true":
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
+# Add user-agent to mimic real browser and avoid detection
+chrome_options.add_argument(
+    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+)
+
+# Additional anti-detection measures
+chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+chrome_options.add_experimental_option('useAutomationExtension', False)
+
 # Detect Chromium binary
 chromium_path = shutil.which("chromium-browser") or shutil.which("chromium") or shutil.which("google-chrome")
 if chromium_path:
@@ -26,7 +36,13 @@ chromedriver_path = shutil.which("chromedriver")
 if chromedriver_path:
     print(f"Using chromedriver at: {chromedriver_path}")
 
-driver = webdriver.Chrome(options=chrome_options)
+# Create service for chromedriver
+from selenium.webdriver.chrome.service import Service
+service = Service(chromedriver_path) if chromedriver_path else None
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+# Remove webdriver properties to avoid detection
+driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
 # Start with the main Naukri page first
 driver.get("https://www.naukri.com")
@@ -103,11 +119,12 @@ try:
         login_button.click()
         print("Login button clicked, waiting for redirect...")
         
-        # Wait for login to complete
-        time.sleep(5)
+        # Wait for login to complete and page to load
+        print("Waiting for login to complete...")
+        time.sleep(8)  # Increased wait time
         
         # Now try to find the profile link
-        profile_link = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'View & Update Profile')]")))
+        profile_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'View & Update Profile')]")))
         profile_link.click()
         print("Profile link clicked successfully")
         
@@ -135,14 +152,28 @@ except Exception as e:
     
     raise
 
-RESUME_PATH = os.environ.get("RESUME_PATH", "Bhuvan_Resume.pdf")
-file_path = os.path.join(os.getcwd(), RESUME_PATH)
-
-uploadInput = WebDriverWait(driver, 20).until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file'].upload-input"))
-)
-driver.execute_script("arguments[0].style.display = 'block';", uploadInput)
-uploadInput.send_keys(file_path)
-
-print("Resume uploaded successfully")
-driver.quit()
+# Resume upload section
+try:
+    RESUME_PATH = os.environ.get("RESUME_PATH", "Bhuvan_Resume.pdf")
+    file_path = os.path.join(os.getcwd(), RESUME_PATH)
+    
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Resume file not found: {file_path}")
+    
+    print(f"Attempting to upload resume: {file_path}")
+    
+    uploadInput = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file'].upload-input"))
+    )
+    driver.execute_script("arguments[0].style.display = 'block';", uploadInput)
+    uploadInput.send_keys(file_path)
+    
+    print("Resume uploaded successfully")
+    
+except Exception as e:
+    print(f"Error during resume upload: {e}")
+    driver.save_screenshot("upload_error.png")
+    print("Saved upload error screenshot: upload_error.png")
+    raise
+finally:
+    driver.quit()
