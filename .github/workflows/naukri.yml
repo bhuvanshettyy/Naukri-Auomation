@@ -32,7 +32,7 @@ jobs:
 
       - name: Upload screenshot on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: debug-screenshots
           path: page.png
