@@ -66,25 +66,103 @@ try:
         
         # Try to find login form - check multiple possible locations
         username_field = None
-        try:
-            username_field = wait.until(EC.presence_of_element_located((By.ID, "usernameField")))
-            print("Login form found by ID 'usernameField'")
-        except TimeoutException:
+        
+        # First, let's check what's actually on the page
+        print("Analyzing page content...")
+        print(f"Page title: {driver.title}")
+        print(f"Current URL: {driver.current_url}")
+        
+        # Save a screenshot to see what the page looks like
+        driver.save_screenshot("page_analysis.png")
+        print("Saved page analysis screenshot")
+        
+        # Check if we're on a different page (like login page)
+        if "login" in driver.current_url.lower():
+            print("Detected login page, trying different approach...")
+            driver.get("https://www.naukri.com")
+            time.sleep(5)
+            driver.save_screenshot("after_redirect.png")
+        
+        # Try multiple selectors with better debugging
+        selectors_to_try = [
+            ("ID", "usernameField"),
+            ("NAME", "username"), 
+            ("NAME", "email"),
+            ("CSS", "input[type='email']"),
+            ("CSS", "input[type='text']"),
+            ("XPATH", "//input[@placeholder='Email']"),
+            ("XPATH", "//input[@placeholder='Username']")
+        ]
+        
+        for selector_type, selector_value in selectors_to_try:
             try:
-                username_field = wait.until(EC.presence_of_element_located((By.NAME, "username")))
-                print("Login form found by NAME 'username'")
+                if selector_type == "ID":
+                    username_field = wait.until(EC.presence_of_element_located((By.ID, selector_value)))
+                elif selector_type == "NAME":
+                    username_field = wait.until(EC.presence_of_element_located((By.NAME, selector_value)))
+                elif selector_type == "CSS":
+                    username_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector_value)))
+                elif selector_type == "XPATH":
+                    username_field = wait.until(EC.presence_of_element_located((By.XPATH, selector_value)))
+                
+                print(f"Login form found by {selector_type}: '{selector_value}'")
+                break
+                
             except TimeoutException:
-                try:
-                    username_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='email']")))
-                    print("Login form found by CSS selector 'input[type=email]'")
-                except TimeoutException:
-                    print("No login form found with any selector")
-                    # Save screenshot and page source for debugging
-                    driver.save_screenshot("no_login_form.png")
-                    print("Saved screenshot: no_login_form.png")
-                    print("Page source preview:")
-                    print(driver.page_source[:2000])
-                    raise Exception("Could not find login form with any selector")
+                print(f"Selector {selector_type}: '{selector_value}' not found")
+                continue
+        
+        if not username_field:
+            print("No login form found with any selector")
+            print("Page source preview:")
+            print(driver.page_source[:3000])
+            driver.save_screenshot("no_login_form.png")
+            print("Saved screenshot: no_login_form.png")
+            
+            # Try to find any form elements to understand the page structure
+            try:
+                forms = driver.find_elements(By.TAG_NAME, "form")
+                print(f"Found {len(forms)} form(s) on the page")
+                for i, form in enumerate(forms):
+                    print(f"Form {i+1}: {form.get_attribute('outerHTML')[:200]}")
+            except Exception as e:
+                print(f"Error analyzing forms: {e}")
+            
+            # Try alternative approach - go directly to login page
+            print("Trying alternative approach - navigating to login page...")
+            try:
+                driver.get("https://www.naukri.com/nlogin/login")
+                time.sleep(5)
+                driver.save_screenshot("login_page_attempt.png")
+                print("Saved login page attempt screenshot")
+                
+                # Try to find login form on dedicated login page
+                for selector_type, selector_value in selectors_to_try:
+                    try:
+                        if selector_type == "ID":
+                            username_field = wait.until(EC.presence_of_element_located((By.ID, selector_value)))
+                        elif selector_type == "NAME":
+                            username_field = wait.until(EC.presence_of_element_located((By.NAME, selector_value)))
+                        elif selector_type == "CSS":
+                            username_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, selector_value)))
+                        elif selector_type == "XPATH":
+                            username_field = wait.until(EC.presence_of_element_located((By.XPATH, selector_value)))
+                        
+                        print(f"Login form found on login page by {selector_type}: '{selector_value}'")
+                        break
+                        
+                    except TimeoutException:
+                        print(f"Selector {selector_type}: '{selector_value}' not found on login page")
+                        continue
+                
+                if not username_field:
+                    print("Still no login form found on dedicated login page")
+                    driver.save_screenshot("login_page_failed.png")
+                    raise Exception("Could not find login form on dedicated login page")
+                    
+            except Exception as e:
+                print(f"Alternative approach failed: {e}")
+                raise Exception("Could not find login form with any selector")
         
         print("Login form found, attempting to login...")
         
