@@ -29,13 +29,14 @@ jobs:
           which chromium || true
           which chromedriver || true
           ls -l /usr/bin | grep chrome || true
-          
+
       - name: Upload screenshot on failure
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: debug-screenshots
           path: page.png
+
 
       - name: Run script
         env:
