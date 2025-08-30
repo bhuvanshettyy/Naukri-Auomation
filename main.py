@@ -28,13 +28,16 @@ if chromedriver_path:
 
 driver = webdriver.Chrome(options=chrome_options)
 
-driver.get("https://www.naukri.com/mnjuser/profile?id=&altresid")
+# Start with the main Naukri page first
+driver.get("https://www.naukri.com")
 driver.maximize_window()
 driver.implicitly_wait(10)
 
 # Wait for page to load and check if we need to login
 wait = WebDriverWait(driver, 20)
 print("Page loaded, checking for login form...")
+print(f"Current URL: {driver.current_url}")
+print(f"Page title: {driver.title}")
 
 try:
     # First, let's check if we're already logged in by looking for profile elements
@@ -45,23 +48,58 @@ try:
     except TimeoutException:
         print("Profile link not found, checking for login form...")
         
-        # Try to find login form
-        username_field = wait.until(EC.presence_of_element_located((By.ID, "usernameField")))
+        # Try to find login form - check multiple possible locations
+        username_field = None
+        try:
+            username_field = wait.until(EC.presence_of_element_located((By.ID, "usernameField")))
+            print("Login form found by ID 'usernameField'")
+        except TimeoutException:
+            try:
+                username_field = wait.until(EC.presence_of_element_located((By.NAME, "username")))
+                print("Login form found by NAME 'username'")
+            except TimeoutException:
+                try:
+                    username_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='email']")))
+                    print("Login form found by CSS selector 'input[type=email]'")
+                except TimeoutException:
+                    print("No login form found with any selector")
+                    # Save screenshot and page source for debugging
+                    driver.save_screenshot("no_login_form.png")
+                    print("Saved screenshot: no_login_form.png")
+                    print("Page source preview:")
+                    print(driver.page_source[:2000])
+                    raise Exception("Could not find login form with any selector")
+        
         print("Login form found, attempting to login...")
         
         username_field.send_keys(NAUKRI_EMAIL)
-        password_field = driver.find_element(By.ID, "passwordField")
+        
+        # Find password field
+        password_field = None
+        try:
+            password_field = driver.find_element(By.ID, "passwordField")
+        except NoSuchElementException:
+            try:
+                password_field = driver.find_element(By.NAME, "password")
+            except NoSuchElementException:
+                password_field = driver.find_element(By.CSS_SELECTOR, "input[type='password']")
+        
         password_field.send_keys(NAUKRI_PASSWORD)
         
         # Try different login button selectors
+        login_button = None
         try:
             login_button = driver.find_element(By.XPATH, "//button[@type='submit']")
         except NoSuchElementException:
             try:
                 login_button = driver.find_element(By.XPATH, "//*[@id='loginForm']//button")
             except NoSuchElementException:
-                login_button = driver.find_element(By.XPATH, "//button[contains(text(),'Login')]")
+                try:
+                    login_button = driver.find_element(By.XPATH, "//button[contains(text(),'Login')]")
+                except NoSuchElementException:
+                    login_button = driver.find_element(By.XPATH, "//button[contains(text(),'Sign In')]")
         
+        print(f"Found login button: {login_button.text}")
         login_button.click()
         print("Login button clicked, waiting for redirect...")
         
@@ -72,6 +110,15 @@ try:
         profile_link = wait.until(EC.presence_of_element_located((By.XPATH, "//a[contains(text(),'View & Update Profile')]")))
         profile_link.click()
         print("Profile link clicked successfully")
+        
+        # Wait a bit for the profile page to load
+        time.sleep(3)
+        
+        # If we're not on the profile page yet, navigate directly
+        if "profile" not in driver.current_url.lower():
+            print("Navigating directly to profile page...")
+            driver.get("https://www.naukri.com/mnjuser/profile?id=&altresid")
+            time.sleep(3)
         
 except Exception as e:
     print(f"Error during login process: {e}")
